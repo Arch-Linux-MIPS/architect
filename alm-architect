@@ -1,0 +1,19 @@
+#!/bin/sh
+
+set -eu
+set -o pipefail
+
+# Set this to the directory which main.py is installed to
+ARCHITECT_DIR=
+
+if [ -z "${ARCHITECT_DIR}" ]; then
+  # If not installed, find the directory this script is in
+  script_dir="$(dirname $(readlink -e $0))"
+
+  ARCHITECT_DIR="${script_dir}/src"
+  conf="${script_dir}/architect.conf"
+else
+  conf="/etc/alm-architect.conf"
+fi
+
+exec python3 ${ARCHITECT_DIR}/main.py --config "${conf}" "$@"
