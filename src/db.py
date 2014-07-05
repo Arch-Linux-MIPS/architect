@@ -13,9 +13,9 @@ class DB:
 			q = r.table("builds")
 
 			if not show_all:
-				q = q.group("pkg").max("time_start").ungroup()["reduction"]
+				q = q.group("pkg").max("time_upload").ungroup()["reduction"]
 
-			q = q.order_by(r.desc("time_start")).limit(n)
+			q = q.order_by(r.desc("time_upload")).limit(n)
 
 			return list(q.run(conn))
 
