@@ -39,3 +39,5 @@ class DestRepo(BinaryRepo):
 			shutil.copyfile(src_path, self._pkg_repo_path(src_path))
 
 		repo_add(self._cache_db, packages)
+
+		self.refresh()
