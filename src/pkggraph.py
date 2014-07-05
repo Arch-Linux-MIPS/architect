@@ -125,6 +125,10 @@ class PkgGraph:
 				p._dpkg = dpkg
 
 		@property
+		def name(self):
+			return self._name
+
+		@property
 		def packages(self):
 			return self._pkgs.values()
 
@@ -154,6 +158,10 @@ class PkgGraph:
 		self._arch = arch
 		self.repos = [ PkgGraph.Repo(self, c) for c in Config.repos() ]
 		self.gen_graph()
+
+	@property
+	def arch(self):
+		return self._arch
 
 	@property
 	def packages(self):

@@ -26,6 +26,9 @@ class Config:
 	def architectures():
 		return Config._json.get("architectures", [])
 
+	def build_logs():
+		return Config.get_path("build_logs")
+
 	def cache_dir():
 		return Config.get_path("cache_dir")
 

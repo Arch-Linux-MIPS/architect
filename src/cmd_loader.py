@@ -1,5 +1,6 @@
 class CmdLoader:
 	_list = [
+		"build",
 		"daemon",
 		"dump",
 		"refresh",

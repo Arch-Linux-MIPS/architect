@@ -18,3 +18,7 @@ class DB:
 			q = q.order_by(r.desc("time_start")).limit(n)
 
 			return list(q.run(conn))
+
+	def insert_build(build):
+		with DB.connect() as conn:
+			return r.table("builds").insert(build).run(conn)
