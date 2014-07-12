@@ -1,4 +1,5 @@
 import argparse
+import base64
 import json
 import os
 import rethinkdb
@@ -19,6 +20,7 @@ from db import DB
 class Cmd(Enum):
 	ready = 1
 	receive = 2
+	source = 3
 
 class ArchitectBuildDaemon(DaemonCmd):
 	cmd_name = "build"
@@ -29,6 +31,7 @@ class ArchitectBuildDaemon(DaemonCmd):
 		self._handlers = {
 			Cmd.ready: ArchitectBuildDaemon.handle_ready,
 			Cmd.receive: ArchitectBuildDaemon.handle_receive,
+			Cmd.source: ArchitectBuildDaemon.handle_source,
 		}
 
 	def handle_ready(self, req):
@@ -83,6 +86,33 @@ class ArchitectBuildDaemon(DaemonCmd):
 
 		return {}
 
+	def handle_source(self, req):
+		( repo_name, _dummy, name ) = req["pkg"].partition("/")
+
+		repo = None
+		for r in self._pkg_graph.repos:
+			if r.name == repo_name:
+				repo = r
+				break
+
+		if repo is None:
+			return { "error": "Unknown repository '{0}'".format(repo_name) }
+
+		if name not in repo._pkgs:
+			return { "error": "Unknown package '{0}'".format(name) }
+
+		src = repo._pkgs[name].source
+		if src is None:
+			return { "error": "404" }
+
+		srcball = src.get_sourceball()
+		if src is None:
+			return { "error": "404" }
+
+		return {
+			"srcball": base64.b64encode(srcball.getbuffer()).decode("utf-8"),
+		}
+
 	def run(self, req):
 		stat = Cmd[req["bcmd"]]
 
@@ -98,6 +128,7 @@ class ArchitectBuildClient(ClientCmd):
 		self._handlers = {
 			Cmd.ready: ArchitectBuildClient.handle_ready,
 			Cmd.receive: ArchitectBuildClient.handle_receive,
+			Cmd.source: ArchitectBuildClient.handle_source,
 		}
 
 	def setup_args(subparsers):
@@ -113,6 +144,11 @@ class ArchitectBuildClient(ClientCmd):
 		parser.set_defaults(bcmd=Cmd.receive)
 		parser.add_argument("repository", type=str, help="Destination repository")
 		parser.add_argument("source", type=str, help="Source package name")
+		parser.add_argument("version", type=str, help="Package version")
+
+		parser = subparsers.add_parser("source", help="Retrieve package source")
+		parser.set_defaults(bcmd=Cmd.source)
+		parser.add_argument("package", type=str, help="Package ID")
 		parser.add_argument("version", type=str, help="Package version")
 
 	def run(self, args):
@@ -194,4 +230,19 @@ class ArchitectBuildClient(ClientCmd):
 				print("Error: {0}".format(reply["error"]))
 				return 1
 
+		return 0
+
+	def handle_source(self, args):
+		reply = self.send({
+			"cmd" : ArchitectBuildDaemon.cmd_name,
+			"bcmd": args.bcmd.name,
+			"pkg": args.package,
+			"version": args.version,
+		})
+
+		if "error" in reply:
+			print("Error: {0}".format(reply["error"]))
+			return 1
+
+		print(reply["srcball"])
 		return 0

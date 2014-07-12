@@ -1,3 +1,4 @@
+import io
 import os
 import requests
 import tarfile
@@ -93,6 +94,29 @@ class BinaryRepo(Repo):
 			raise Exception("Incomplete packages in DB")
 
 		print(" done")
+
+	def get_sourceball(self, name, ver):
+		prefix = "{0}/{1}/".format(self._name, name)
+		prefix_len = len(prefix)
+
+		out_data = io.BytesIO()
+
+		with tarfile.open(fileobj=out_data, mode="w") as out_tar:
+			with tarfile.open(self._cache_src) as in_tar:
+				for m in in_tar:
+					if not m.name.startswith(prefix):
+						continue
+
+					fname = m.name[prefix_len:]
+
+					info = tarfile.TarInfo(fname)
+					info.size = m.size
+					info.mtime = m.mtime
+					info.mode = m.mode
+					info.type = m.type
+					out_tar.addfile(info, in_tar.extractfile(m))
+
+		return out_data
 
 	class SrcPkg(SrcPkg):
 		def __init__(self, repo, name, ver):

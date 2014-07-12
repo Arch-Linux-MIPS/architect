@@ -69,6 +69,9 @@ class SourceRepo(Repo):
 		json_str = bash(SourceRepo._parse_script, pkgbuild).stdout.decode('utf-8')
 		return json.loads(json_str)
 
+	def get_sourceball(self, name, ver):
+		return None
+
 	class ExcludedSrcPkg(SrcPkg):
 		def __init__(self, repo, name):
 			SrcPkg.__init__(self, repo, name, None)

@@ -228,6 +228,9 @@ class SrcPkg:
 	def excluded(self):
 		return False
 
+	def get_sourceball(self):
+		return self._repo.get_sourceball(self._name, self._ver)
+
 class Repo:
 	def __init__(self, name):
 		self._name = name
