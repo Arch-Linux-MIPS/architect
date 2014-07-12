@@ -139,6 +139,7 @@ class ArchitectBuildClient(ClientCmd):
 
 		parser = subparsers.add_parser("ready", help="Determine packages ready for building")
 		parser.set_defaults(bcmd=Cmd.ready)
+		parser.add_argument("--json", action='store_true', help="Output as JSON")
 
 		parser = subparsers.add_parser("receive", help="Receive a completed build")
 		parser.set_defaults(bcmd=Cmd.receive)
@@ -178,6 +179,10 @@ class ArchitectBuildClient(ClientCmd):
 		if "error" in reply:
 			print("Error: {0}".format(reply["error"]))
 			return 1
+
+		if "json" in args and args.json:
+			print(json.dumps(reply, indent=4))
+			return 0
 
 		for pkg in reply["pkgs"]:
 			print("{0} {1}".format(pkg["id"], pkg["version"]))
