@@ -13,17 +13,18 @@ from repo import Repo
 from utils import slugify
 
 class SourceRepo(Repo):
+	_parse_script = os.path.join(
+		os.path.dirname(os.path.realpath(__file__)),
+		"spkg-parse.sh")
+
 	def __init__(self, name):
 		Repo.__init__(self, name)
-
-		script_dir = os.path.dirname(os.path.realpath(__file__))
-		self._parse_script = os.path.join(script_dir, "spkg-parse.sh")
 
 	def read_sources(self):
 		print("Reading {0}".format(self._repo))
 
 		self._pkgs = {}
-		parser_mtime = os.path.getmtime(self._parse_script)
+		parser_mtime = os.path.getmtime(SourceRepo._parse_script)
 
 		for dir_name in os.listdir(self._repo):
 			if dir_name.startswith("."):
@@ -54,7 +55,7 @@ class SourceRepo(Repo):
 					reread = False
 
 			if reread:
-				pkg_json = self.parse_pkgbuild(pkgbuild)
+				pkg_json = SourceRepo.parse_pkgbuild(pkgbuild)
 				with open(cache, "w") as fp:
 					json.dump(pkg_json, fp)
 			else:
@@ -64,8 +65,8 @@ class SourceRepo(Repo):
 			spkg = SourceRepo.SrcPkg(self, pkg_json)
 			self._pkgs[spkg.name] = spkg
 
-	def parse_pkgbuild(self, pkgbuild):
-		json_str = bash(self._parse_script, pkgbuild).stdout.decode('utf-8')
+	def parse_pkgbuild(pkgbuild):
+		json_str = bash(SourceRepo._parse_script, pkgbuild).stdout.decode('utf-8')
 		return json.loads(json_str)
 
 	class ExcludedSrcPkg(SrcPkg):
