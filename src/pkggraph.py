@@ -79,6 +79,35 @@ class PkgGraph:
 				return None
 			return self._spkgs[0].version
 
+		def ready_for_build(self, up_to_date):
+			if self.excluded:
+				return False
+
+			if self.up_to_date:
+				return False
+
+			if self.source_outdated:
+				return False
+
+			src = self.source
+			if src is None:
+				return False
+
+			for dep in src.makedepends:
+				if not dep.met(up_to_date):
+					return False
+
+			for dep in src.checkdepends:
+				if not dep.met(up_to_date):
+					return False
+
+			for bpkg in src.binaries:
+				for dep in bpkg.depends:
+					if not dep.met(up_to_date):
+						return False
+
+			return True
+
 	class Repo:
 		def __init__(self, graph, cfg):
 			self._graph = graph
@@ -174,7 +203,23 @@ class PkgGraph:
 
 	def gen_graph(self):
 		self._pkgs = {}
+		self._up_to_date = {}
 
 		for repo in self.repos:
 			for pkg in repo.packages:
 				self._pkgs[pkg.id] = pkg
+
+		for pkg in self._pkgs.values():
+			if not pkg.up_to_date:
+				continue
+			dpkg = pkg._dpkg
+			if dpkg is None:
+				continue
+			for bpkg in dpkg.binaries:
+				self._up_to_date[bpkg.name] = bpkg.version
+				self._up_to_date.update(bpkg.provides)
+
+	def ready_for_build(self):
+		for pkg in self._pkgs.values():
+			if pkg.ready_for_build(self._up_to_date):
+				yield pkg

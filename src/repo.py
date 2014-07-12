@@ -126,6 +126,28 @@ class PkgDep:
 	def version(self):
 		return self._ver
 
+	def met(self, provided):
+		if not self.name in provided:
+			return False
+
+		if self.op == PkgDep.NO_VERSION:
+			return True
+
+		ver = provided[self.name]
+
+		if self.op == PkgDep.EQUAL:
+			return ver == self._ver
+		if self.op == PkgDep.GREATER_EQUAL:
+			return ver >= self._ver
+		if self.op == PkgDep.GREATER:
+			return ver > self._ver
+		if self.op == PkgDep.LESSER_EQUAL:
+			return ver <= self._ver
+		if self.op == PkgDep.LESSER:
+			return ver < self._ver
+
+		raise Exception("Unhandled op {0}".format(self.op))
+
 class BinPkg:
 	def __init__(self, src, name, ver, desc=""):
 		self._deps = set()
@@ -133,6 +155,7 @@ class BinPkg:
 		self._groups = set()
 		self._name = name
 		self._optdeps = set()
+		self._provides = {}
 		self._src = src
 		self._ver = ver
 
@@ -155,6 +178,10 @@ class BinPkg:
 	@property
 	def optdepends(self):
 		return self._optdeps
+
+	@property
+	def provides(self):
+		return self._provides
 
 	@property
 	def src(self):

@@ -17,7 +17,8 @@ from config import Config
 from db import DB
 
 class Cmd(Enum):
-	receive = 1
+	ready = 1
+	receive = 2
 
 class ArchitectBuildDaemon(DaemonCmd):
 	cmd_name = "build"
@@ -26,7 +27,16 @@ class ArchitectBuildDaemon(DaemonCmd):
 		super().__init__(daemon)
 
 		self._handlers = {
+			Cmd.ready: ArchitectBuildDaemon.handle_ready,
 			Cmd.receive: ArchitectBuildDaemon.handle_receive,
+		}
+
+	def handle_ready(self, req):
+		return {
+			"pkgs": [{
+				"id": p.id,
+				"version": str(p.source.version),
+			} for p in self._pkg_graph.ready_for_build() ],
 		}
 
 	def handle_receive(self, req):
@@ -86,6 +96,7 @@ class ArchitectBuildClient(ClientCmd):
 		super().__init__()
 
 		self._handlers = {
+			Cmd.ready: ArchitectBuildClient.handle_ready,
 			Cmd.receive: ArchitectBuildClient.handle_receive,
 		}
 
@@ -94,6 +105,9 @@ class ArchitectBuildClient(ClientCmd):
 		parser.set_defaults(cmd=ArchitectBuildClient)
 
 		subparsers = parser.add_subparsers(title="build-cmd")
+
+		parser = subparsers.add_parser("ready", help="Determine packages ready for building")
+		parser.set_defaults(bcmd=Cmd.ready)
 
 		parser = subparsers.add_parser("receive", help="Receive a completed build")
 		parser.set_defaults(bcmd=Cmd.receive)
@@ -118,6 +132,21 @@ class ArchitectBuildClient(ClientCmd):
 			return True
 		except:
 			return False
+
+	def handle_ready(self, args):
+		reply = self.send({
+			"cmd" : ArchitectBuildDaemon.cmd_name,
+			"bcmd": args.bcmd.name,
+		})
+
+		if "error" in reply:
+			print("Error: {0}".format(reply["error"]))
+			return 1
+
+		for pkg in reply["pkgs"]:
+			print("{0} {1}".format(pkg["id"], pkg["version"]))
+
+		return 0
 
 	def handle_receive(self, args):
 		with tempfile.TemporaryDirectory() as tmp_dir:
